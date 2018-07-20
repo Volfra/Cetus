@@ -4,7 +4,7 @@ Examples
 */
 int main()
 {
-	int a[10000], b[10000], c[10000], d[100000000][100000000];
+	int a[10], b[10], c[10], d[100000000][100000000];
 	int k;
 	int i;
 	int j;
@@ -12,11 +12,13 @@ int main()
 	#pragma cetus private(k) 
 	#pragma loop name main#0 
 	#pragma cetus parallel 
-	#pragma omp parallel for private(k)
-	for (k=0; k<10000; k ++ )
+	/*
+	Disabled due to low profitability: #pragma omp parallel for private(k)
+	*/
+	for (k=0; k<10; k ++ )
 	{
 		a[k]=k;
-		b[k]=(k-10000);
+		b[k]=(k-10);
 		c[k]=1;
 	}
 	/* Flow dependence */

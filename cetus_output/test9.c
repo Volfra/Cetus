@@ -3,49 +3,32 @@ Floyd Warshall algorithm
 
 */
 /* #include<stdio.h> */
-int min(int a, int b)
-{
-	int _ret_val_0;
-	if (a<b)
-	{
-		return a;
-	}
-	else
-	{
-		return b;
-	}
-	return _ret_val_0;
+/*
+
+int min(int a, int b) {
+		if(a<b) {
+		  		return a;
+	 	} else {
+		  		return b;
+	  	}
 }
 
-void floyds(int p[1005][1005], int n)
-{
-	int i, j, k;
-	#pragma cetus private(i, j, k) 
-	#pragma loop name floyds#0 
-	for (k=1; k<=n; k ++ )
-	{
-		#pragma cetus private(i, j) 
-		#pragma loop name floyds#0#0 
-		for (i=1; i<=n; i ++ )
-		{
-			#pragma cetus private(j) 
-			#pragma loop name floyds#0#0#0 
-			for (j=1; j<=n; j ++ )
-			{
-				if (i==j)
-				{
-					p[i][j]=0;
+void floyds(int p[1005][1005],int n) {
+		int i,j,k;
+	 	for(k=1;k<=n;k++) {
+		  		for(i=1;i<=n;i++) { 
+			   			for(j=1;j<=n;j++) {
+				    			if(i==j) {
+					     				p[i][j]=0;
+				    			} else {
+					     				p[i][j]=min(p[i][j],p[i][k]+p[k][j]);
+								}
+						}
 				}
-				else
-				{
-					p[i][j]=min(p[i][j], p[i][k]+p[k][j]);
-				}
-			}
 		}
-	}
-	return ;
 }
 
+*/
 int main()
 {
 	int p[1005][1005], w, e, u, v;
@@ -59,6 +42,7 @@ int main()
 	 	
 	*/
 	int i, j;
+	int k;
 	int _ret_val_0;
 	#pragma cetus private(i, j) 
 	#pragma loop name main#0 
@@ -99,7 +83,37 @@ int main()
 	 	}
 	 	
 	*/
-	floyds(p, n);
+	/* floyds(p,n); */
+	#pragma cetus private(i, j, k) 
+	#pragma loop name main#1 
+	for (k=1; k<=n; k ++ )
+	{
+		#pragma cetus private(i, j) 
+		#pragma loop name main#1#0 
+		for (i=1; i<=n; i ++ )
+		{
+			#pragma cetus private(j) 
+			#pragma loop name main#1#0#0 
+			for (j=1; j<=n; j ++ )
+			{
+				if (i==j)
+				{
+					p[i][j]=0;
+				}
+				else
+				{
+					if (p[i][j]<(p[i][k]+p[k][j]))
+					{
+						p[i][j]=p[i][j];
+					}
+					else
+					{
+						p[i][j]=(p[i][k]+p[k][j]);
+					}
+				}
+			}
+		}
+	}
 	/*
 	
 	 	printf("\n Transitive closure:\n");

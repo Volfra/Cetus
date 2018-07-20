@@ -4,13 +4,6 @@ Trapezoidal Method definite integrals
 */
 /* #include<stdio.h> */
 /* #include<math.h> */
-float f(float x)
-{
-	float _ret_val_0;
-	_ret_val_0=(1/(1+pow(x, 2)));
-	return _ret_val_0;
-}
-
 int main()
 {
 	int i, n;
@@ -28,10 +21,12 @@ int main()
 	/* printf("\n Y values \n"); */
 	#pragma cetus private(i) 
 	#pragma loop name main#0 
+	#pragma cetus parallel 
+	#pragma omp parallel for if((10000<(105L+(104L*n)))) private(i)
 	for (i=0; i<=n; i ++ )
 	{
 		x[i]=(x0+(i*h));
-		y[i]=f(x[i]);
+		y[i]=(1/(1+pow(x[i], 2)));
 		/* printf("\n%f\n",y[i]); */
 	}
 	so=0;

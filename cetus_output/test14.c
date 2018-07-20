@@ -181,7 +181,6 @@ void error_check()
 	dx=(2.0/(n-1));
 	dy=(2.0/(m-1));
 	error=0.0;
-	/* #pragma omp parallel for private(i,j,xx,yy,temp) reduction(+:error) */
 	#pragma cetus private(i, j, temp, xx, yy) 
 	#pragma loop name error_check#0 
 	#pragma cetus reduction(+: error) 
