@@ -3,11 +3,6 @@
 //#include<stdio.h>
 //#include<math.h>
 
-float f(float x)
-{
-    return(1/(1+pow(x,2)));
-}
-
 int main () {
 
 	int i,n;
@@ -27,7 +22,7 @@ int main () {
     
     for(i=0; i<=n; i++) {
         x[i]=x0+i*h;
-        y[i]=f(x[i]);
+        y[i]=(1/(1+pow(x[i],2)));
         //printf("\n%f\n",y[i]);
     }
     

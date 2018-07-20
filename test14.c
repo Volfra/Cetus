@@ -164,7 +164,6 @@ void error_check () {
   dy = 2.0 / (m - 1);
   error = 0.0;
 
-//#pragma omp parallel for private(i,j,xx,yy,temp) reduction(+:error)
 	for (i = 0; i < n; i++) {
     	for (j = 0; j < m; j++) {
 			xx = -1.0 + dx * (i - 1);
