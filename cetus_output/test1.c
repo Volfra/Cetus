@@ -6,9 +6,9 @@ int main()
 {
 	int first[1000][1000], second[1000][1000], multiply[1000][1000];
 	int c, d, k, sum = 0;
-	int m, p, q;
+	int m = 1000, p = 1000, q = 1000;
+	/* m = p = q = 1000; */
 	int _ret_val_0;
-	m=(p=(q=1000));
 	#pragma cetus private(c, d, k) 
 	#pragma loop name main#0 
 	for (c=0; c<m; c ++ )
