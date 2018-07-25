@@ -81,6 +81,8 @@ void initialize()
 	{
 		#pragma cetus private(j, xx, yy) 
 		#pragma loop name initialize#0#0 
+		#pragma cetus parallel 
+		#pragma omp parallel for if((10000<(1L+(6L*m)))) private(j, xx, yy)
 		for (j=0; j<m; j ++ )
 		{
 			xx=((int)(( - 1.0)+(dx*(i-1))));
@@ -142,6 +144,8 @@ void jacobi()
 		{
 			#pragma cetus private(j) 
 			#pragma loop name jacobi#0#0 
+			#pragma cetus parallel 
+			#pragma omp parallel for if((10000<(1L+(3L*m)))) private(j)
 			for (j=0; j<m; j ++ )
 			{
 				uold[i][j]=u[i][j];
@@ -156,7 +160,9 @@ void jacobi()
 		{
 			#pragma cetus private(j, resid) 
 			#pragma loop name jacobi#1#0 
-			/* #pragma cetus reduction(+: error)  */
+			#pragma cetus reduction(+: error) 
+			#pragma cetus parallel 
+			#pragma omp parallel for if((10000<(-9L+(5L*m)))) private(j, resid) reduction(+: error)
 			for (j=1; j<(m-1); j ++ )
 			{
 				resid=(((((ax*(uold[i-1][j]+uold[i+1][j]))+(ay*(uold[i][j-1]+uold[i][j+1])))+(b*uold[i][j]))-f[i][j])/b);
@@ -190,7 +196,9 @@ void error_check()
 	{
 		#pragma cetus private(j, temp, xx, yy) 
 		#pragma loop name error_check#0#0 
-		/* #pragma cetus reduction(+: error)  */
+		#pragma cetus reduction(+: error) 
+		#pragma cetus parallel 
+		#pragma omp parallel for if((10000<(1L+(6L*m)))) private(j, temp, xx, yy) reduction(+: error)
 		for (j=0; j<m; j ++ )
 		{
 			xx=(( - 1.0)+(dx*(i-1)));

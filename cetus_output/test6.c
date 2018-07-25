@@ -33,7 +33,7 @@ int main()
 	srand(time(NULL));
 	#pragma cetus private(j, xcoordinate, ycoordinate) 
 	#pragma loop name main#0 
-	/* #pragma cetus reduction(+: circle_count)  */
+	#pragma cetus reduction(+: circle_count) 
 	for (j=1; j<=npoints; j ++ )
 	{
 		double xcoordinate = (((double)rand())/((double)RAND_MAX))*2.0;

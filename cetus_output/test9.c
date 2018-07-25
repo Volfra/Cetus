@@ -52,6 +52,10 @@ int main()
 	{
 		#pragma cetus private(j) 
 		#pragma loop name main#0#0 
+		#pragma cetus parallel 
+		/*
+		Disabled due to low profitability: #pragma omp parallel for private(j)
+		*/
 		for (j=1; j<=n; j ++ )
 		{
 			p[i][j]=999;

@@ -45,6 +45,10 @@ int main()
 			{
 				#pragma cetus private(l) 
 				#pragma loop name main#1#0#0#0 
+				#pragma cetus parallel 
+				/*
+				Disabled due to low profitability: #pragma omp parallel for private(l)
+				*/
 				for (l=0; l<10; l ++ )
 				{
 					/* printf ("row: %d",i+l+1); */

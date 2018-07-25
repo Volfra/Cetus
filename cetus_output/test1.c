@@ -35,7 +35,11 @@ int main()
 			sum=0;
 			#pragma cetus private(k) 
 			#pragma loop name main#0#1#0 
-			/* #pragma cetus reduction(+: sum)  */
+			#pragma cetus reduction(+: sum) 
+			#pragma cetus parallel 
+			/*
+			Disabled due to low profitability: #pragma omp parallel for private(k) reduction(+: sum)
+			*/
 			for (k=0; k<p; k ++ )
 			{
 				sum=(sum+(first[c][k]*second[k][d]));

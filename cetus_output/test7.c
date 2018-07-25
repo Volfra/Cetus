@@ -15,6 +15,10 @@ int main()
 	{
 		#pragma cetus private(j) 
 		#pragma loop name main#0#0 
+		#pragma cetus parallel 
+		/*
+		Disabled due to low profitability: #pragma omp parallel for private(j)
+		*/
 		for (j=0; j<1005; j ++ )
 		{
 			A[i][j]=(i+j);
@@ -28,6 +32,10 @@ int main()
 	{
 		#pragma cetus private(j) 
 		#pragma loop name main#1#0 
+		#pragma cetus parallel 
+		/*
+		Disabled due to low profitability: #pragma omp parallel for private(j)
+		*/
 		for (j=0; j<1005; j ++ )
 		{
 			T[i][j]=A[j][i];

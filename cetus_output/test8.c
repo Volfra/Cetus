@@ -17,6 +17,8 @@ int main()
 	{
 		#pragma cetus private(j) 
 		#pragma loop name main#0#0 
+		#pragma cetus parallel 
+		#pragma omp parallel for private(j)
 		for (j=0; j<10005; j ++ )
 		{
 			A[i][j]=(i+j);

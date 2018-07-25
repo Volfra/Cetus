@@ -72,7 +72,7 @@ void StressStrainWork(real8 * deltz, real8 * delts, const real8 * newSxx, const 
 	real8 szz;
 	#pragma cetus private(i, index) 
 	#pragma loop name StressStrainWork#0 
-	/* #pragma cetus reduction(+: deltz[zoneset[i]])  */
+	#pragma cetus reduction(+: deltz[zoneset[i]]) 
 	for (i=0; i<=(length-1); i+=1)
 	{
 		index=zoneset[i];
@@ -145,7 +145,7 @@ void AccumulateForce(int * idxBound, int * idxList, int len, double * tmp, doubl
 				register int jj = 0;
 				#pragma cetus private(idx) 
 				#pragma loop name AccumulateForce#0#0 
-				/* #pragma cetus reduction(+: sum)  */
+				#pragma cetus reduction(+: sum) 
 				for (; jj<=(count-1); jj+=1)
 				{
 					int idx = list[jj];
@@ -339,17 +339,23 @@ void foo7()
 void foo8(double * o1, double * c, int * * idx, int len)
 {
 	int i;
-	#pragma cetus private(ii, lidx, llidx, volnew_o8) 
+	#pragma cetus private() 
 	#pragma loop name foo8#0 
-	/* #pragma cetus reduction(+: o1[lidx[ii]])  */
+	#pragma cetus reduction(+: o1[lidx[ii]]) 
+	#pragma cetus parallel 
+	#pragma omp parallel for if((10000<(1L+(30L*len)))) reduction(+: o1[lidx[ii]])
 	for (i=0; i<=(len-1); i+=1)
 	{
 		int ii;
 		const int * lidx = idx[i];
 		double volnew_o8 = 0.5*c[i];
-		#pragma cetus private(llidx) 
+		#pragma cetus private() 
 		#pragma loop name foo8#0#0 
-		/* #pragma cetus reduction(+: o1[lidx[ii]])  */
+		#pragma cetus reduction(+: o1[lidx[ii]]) 
+		#pragma cetus parallel 
+		/*
+		Disabled due to low profitability: #pragma omp parallel for reduction(+: o1[lidx[ii]])
+		*/
 		for (ii=0; ii<=5; ii+=1)
 		{
 			int llidx = lidx[ii];
@@ -387,7 +393,9 @@ void error_check()
 	{
 		#pragma cetus private(j, temp, xx, yy) 
 		#pragma loop name error_check#0#0 
-		/* #pragma cetus reduction(+: error)  */
+		#pragma cetus reduction(+: error) 
+		#pragma cetus parallel 
+		#pragma omp parallel for if((10000<(1L+(6L*m)))) private(j, temp, xx, yy) reduction(+: error)
 		for (j=0; j<=(m-1); j+=1)
 		{
 			xx=(( - 1.0)+(dx*(i-1)));
@@ -452,7 +460,7 @@ void foo11(int istart, int iend, real8 * a, real8 * b, real8 * c, int k, real8 *
 		int i = istart;
 		#pragma cetus private(k) 
 		#pragma loop name foo11#0 
-		/* #pragma cetus reduction(+: k)  */
+		#pragma cetus reduction(+: k) 
 		for (; i<=(iend-1); i+=1)
 		{
 			real8 s[3];
@@ -497,6 +505,10 @@ void initialize()
 	{
 		#pragma cetus private(j, xx) 
 		#pragma loop name initialize#0#0 
+		#pragma cetus parallel 
+		/*
+		Disabled due to low profitability: #pragma omp parallel for private(j, xx)
+		*/
 		for (j=0; j<=(m-1); j+=1)
 		{
 			xx=((int)(( - 1.0)+(dx*(i-1))));
@@ -603,7 +615,7 @@ void foo14(int * indexSet, int N, int ax)
 	{
 		int idx = 0;
 		#pragma loop name foo14#0 
-		/* #pragma cetus reduction(+: xa3[indexSet[idx]])  */
+		#pragma cetus reduction(+: xa3[indexSet[idx]]) 
 		for (; idx<=(N-1); idx+=1)
 		{
 			xa3[indexSet[idx]]+=ax;
@@ -620,7 +632,7 @@ void foo15(int * indexSet, int N, int ax)
 		int idx = 0;
 		#pragma cetus private(i) 
 		#pragma loop name foo15#0 
-		/* #pragma cetus reduction(+: xa3[indexSet[idx]])  */
+		#pragma cetus reduction(+: xa3[indexSet[idx]]) 
 		for (; idx<=(N-1); idx+=1)
 		{
 			const int i = indexSet[idx];
@@ -706,9 +718,11 @@ void foo19(real8 * y, real8 * d__, real8 * d11, real8 * d12, real8 * d13, real8 
 	int t1 = t-1;
 	if (flagB==0)
 	{
-		#pragma cetus private(l36, l8) 
+		#pragma cetus private() 
 		#pragma loop name foo19#0 
-		/* #pragma cetus reduction(+: )  */
+		#pragma cetus reduction(+: y[l36+0], y[l36+10], y[l36+11], y[l36+12], y[l36+13], y[l36+14], y[l36+15], y[l36+16], y[l36+17], y[l36+18], y[l36+19], y[l36+1], y[l36+20], y[l36+21], y[l36+22], y[l36+23], y[l36+24], y[l36+25], y[l36+26], y[l36+27], y[l36+28], y[l36+29], y[l36+2], y[l36+30], y[l36+31], y[l36+32], y[l36+33], y[l36+34], y[l36+35], y[l36+3], y[l36+4], y[l36+5], y[l36+6], y[l36+7], y[l36+8], y[l36+9]) 
+		#pragma cetus parallel 
+		#pragma omp parallel for if((10000<(1L+(65L*ub)))) reduction(+: y[l36+0], y[l36+10], y[l36+11], y[l36+12], y[l36+13], y[l36+14], y[l36+15], y[l36+16], y[l36+17], y[l36+18], y[l36+19], y[l36+1], y[l36+20], y[l36+21], y[l36+22], y[l36+23], y[l36+24], y[l36+25], y[l36+26], y[l36+27], y[l36+28], y[l36+29], y[l36+2], y[l36+30], y[l36+31], y[l36+32], y[l36+33], y[l36+34], y[l36+35], y[l36+3], y[l36+4], y[l36+5], y[l36+6], y[l36+7], y[l36+8], y[l36+9])
 		for (l=0; l<=(ub-1); l+=1)
 		{
 			int l8 = l*8;
@@ -777,9 +791,11 @@ void foo19(real8 * y, real8 * d__, real8 * d11, real8 * d12, real8 * d13, real8 
 		}
 		if (flagA>0)
 		{
-			#pragma cetus private(l8, nel) 
+			#pragma cetus private(nel) 
 			#pragma loop name foo19#1 
-			/* #pragma cetus reduction(+: p[nell[l]])  */
+			#pragma cetus reduction(+: p[nell[l]]) 
+			#pragma cetus parallel 
+			#pragma omp parallel for if((10000<(1L+(8L*ub)))) private(nel) reduction(+: p[nell[l]])
 			for (l=0; l<=(ub-1); l+=1)
 			{
 				int l8 = l*8;
@@ -870,9 +886,11 @@ void foo19(real8 * y, real8 * d__, real8 * d11, real8 * d12, real8 * d13, real8 
 		}
 		if (flagA>0)
 		{
-			#pragma cetus private(l8, nel) 
+			#pragma cetus private(nel) 
 			#pragma loop name foo19#3 
-			/* #pragma cetus reduction(+: p[nell[l]])  */
+			#pragma cetus reduction(+: p[nell[l]]) 
+			#pragma cetus parallel 
+			#pragma omp parallel for if((10000<(1L+(8L*ub)))) private(nel) reduction(+: p[nell[l]])
 			for (l=0; l<=(ub-1); l+=1)
 			{
 				int l8 = l*8;
@@ -910,7 +928,11 @@ int mmm()
 		float sum = 0.0;
 		#pragma cetus private(j) 
 		#pragma loop name mmm#0#0 
-		/* #pragma cetus reduction(+: sum)  */
+		#pragma cetus reduction(+: sum) 
+		#pragma cetus parallel 
+		/*
+		Disabled due to low profitability: #pragma omp parallel for private(j) reduction(+: sum)
+		*/
 		for (j=0; j<=999; j+=1)
 		{
 			sum+=(a[i][j]*v[j]);
@@ -1033,6 +1055,8 @@ void foo24()
 	{
 		#pragma cetus private(j, x, y) 
 		#pragma loop name foo24#0#0 
+		#pragma cetus parallel 
+		#pragma omp parallel for private(j, x, y)
 		for (j=0; j<=9999; j+=1)
 		{
 			x=i;
@@ -1218,7 +1242,11 @@ float foo30()
 	{
 		#pragma cetus private(j, temp) 
 		#pragma loop name foo30#0#0 
-		/* #pragma cetus reduction(+: error)  */
+		#pragma cetus reduction(+: error) 
+		#pragma cetus parallel 
+		/*
+		Disabled due to low profitability: #pragma omp parallel for private(j, temp) reduction(+: error)
+		*/
 		for (j=0; j<=999; j+=1)
 		{
 			temp=uu[i][j];
@@ -1296,7 +1324,7 @@ void foo33(real8 * a, real8 * b, real8 * c, real8 * d, int len)
 	int l;
 	#pragma cetus private(icol, l8) 
 	#pragma loop name foo33#0 
-	/* #pragma cetus reduction(+: a[(icol+((jrow+l8)8))])  */
+	#pragma cetus reduction(+: a[icol+((jrow+l8)*8)]) 
 	for (l=0; l<=(len-1); l+=1)
 	{
 		int l8 = l*8;
@@ -1315,13 +1343,17 @@ void foo33(real8 * a, real8 * b, real8 * c, real8 * d, int len)
 		}
 		#pragma cetus private(icol) 
 		#pragma loop name foo33#0#1 
-		/* #pragma cetus reduction(+: a[(icol+((jrow+l8)8))])  */
+		#pragma cetus reduction(+: a[icol+((jrow+l8)*8)]) 
+		#pragma cetus parallel 
+		#pragma omp parallel for private(icol) reduction(+: a[icol+((jrow+l8)*8)])
 		for (jrow=0; jrow<=9999; jrow+=1)
 		{
 			real8 hj1 = h*c[(jrow+l8)*4];
 			#pragma cetus private(icol) 
 			#pragma loop name foo33#0#1#0 
-			/* #pragma cetus reduction(+: a[(icol+((jrow+l8)8))])  */
+			#pragma cetus reduction(+: a[icol+((jrow+l8)*8)]) 
+			#pragma cetus parallel 
+			#pragma omp parallel for private(icol) reduction(+: a[icol+((jrow+l8)*8)])
 			for (icol=0; icol<=9999; icol+=1)
 			{
 				a[icol+((jrow+l8)*8)]+=(hj1*tmp[icol]);
@@ -1707,12 +1739,18 @@ void initialize1()
 		zeta=(((double)k)*dnzm1);
 		#pragma cetus private(eta, j, m) 
 		#pragma loop name initialize1#0#0 
+		#pragma cetus parallel 
+		#pragma omp parallel for if((10000<(1L+(19L*grid_points[1L])))) private(eta, j, m)
 		for (j=0; j<=(grid_points[1]-1); j+=1)
 		{
 			eta=(((double)j)*dnym1);
 			/* exact_solution(xi,eta,zeta,temp); */
 			#pragma cetus private(m) 
 			#pragma loop name initialize1#0#0#0 
+			#pragma cetus parallel 
+			/*
+			Disabled due to low profitability: #pragma omp parallel for private(m)
+			*/
 			for (m=0; m<=4; m+=1)
 			{
 				ux[k][j][i][m]=temp[m];
