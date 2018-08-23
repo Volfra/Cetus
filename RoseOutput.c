@@ -235,7 +235,7 @@ void foo7()
 /*
  * first private
  */
-void goo(double *o1,double *c,int **idx,int len)
+void foo8(double *o1,double *c,int **idx,int len)
 {
   int i;
   for (i = 0; i <= len - 1; i += 1) {
@@ -940,7 +940,7 @@ int i;
 /*
  * Reduction max
  */
-double aa[10000];
+double a[10];
 void foo32()
 {
 double max_val = - 1e99;

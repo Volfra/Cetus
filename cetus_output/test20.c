@@ -19,18 +19,20 @@ int main()
 */
 void DelVolBaseLoopAlgorithm()
 {
-	int j, k;
-	#pragma cetus private(off) 
+	int j, k, off;
+	#pragma cetus private(j, k, off) 
 	#pragma loop name DelVolBaseLoopAlgorithm#0 
-	for (k=1; k<1000; k ++ )
+	#pragma cetus parallel 
+	#pragma omp parallel for private(j, k, off)
+	for (k=1; k<10000; k ++ )
 	{
-		#pragma cetus private() 
+		#pragma cetus private(j, off) 
 		#pragma loop name DelVolBaseLoopAlgorithm#0#0 
 		#pragma cetus parallel 
-		#pragma omp parallel for
+		#pragma omp parallel for private(j, off)
 		for (j=1; j<10000; j ++ )
 		{
-			int off = (j*555)+(k*777);
+			off=((j*555)+(k*777));
 		}
 	}
 	return ;
@@ -132,28 +134,28 @@ void StressStrainHeat(const real8 * deltz, real8 * deltzh, real8 * deltrh, const
 */
 void AccumulateForce(int * idxBound, int * idxList, int len, double * tmp, double * force)
 {
+	register int ii;
+	#pragma cetus private() 
+	#pragma loop name AccumulateForce#0 
+	#pragma cetus parallel 
+	#pragma omp parallel for
+	for (ii=0; ii<=(len-1); ii+=1)
 	{
-		register int ii = 0;
-		#pragma cetus private(count, idx, jj, list, sum) 
-		#pragma loop name AccumulateForce#0 
-		for (; ii<=(len-1); ii+=1)
+		int count = idxBound[ii+1]-idxBound[ii];
+		int * list =  & idxList[idxBound[ii]];
+		double sum = 0.0;
+		register int jj;
+		#pragma cetus private() 
+		#pragma loop name AccumulateForce#0#0 
+		#pragma cetus reduction(+: sum) 
+		#pragma cetus parallel 
+		#pragma omp parallel for if((10000<(1L+(4L*count)))) reduction(+: sum)
+		for (jj=0; jj<=(count-1); jj+=1)
 		{
-			int count = idxBound[ii+1]-idxBound[ii];
-			int * list =  & idxList[idxBound[ii]];
-			double sum = 0.0;
-			{
-				register int jj = 0;
-				#pragma cetus private(idx) 
-				#pragma loop name AccumulateForce#0#0 
-				#pragma cetus reduction(+: sum) 
-				for (; jj<=(count-1); jj+=1)
-				{
-					int idx = list[jj];
-					sum+=tmp[list[jj]];
-				}
-			}
-			force[ii]+=sum;
+			int idx = list[jj];
+			sum+=tmp[list[jj]];
 		}
+		force[ii]+=sum;
 	}
 	return ;
 }
@@ -201,22 +203,20 @@ void foo2()
 */
 int foo3()
 {
-	double a[1000][1000];
+	double a[10000][10000];
+	int i, j;
 	int _ret_val_0;
+	#pragma cetus private(i, j) 
+	#pragma loop name foo3#0 
+	for (i=0; i<=9998; i+=1)
 	{
-		int i = 0;
 		#pragma cetus private(j) 
-		#pragma loop name foo3#0 
-		for (; i<=998; i+=1)
+		#pragma loop name foo3#0#0 
+		#pragma cetus parallel 
+		#pragma omp parallel for private(j)
+		for (j=0; j<=9999; j+=1)
 		{
-			{
-				int j = 0;
-				#pragma loop name foo3#0#0 
-				for (; j<=999; j+=1)
-				{
-					a[i][j]+=a[i+1][j];
-				}
-			}
+			a[i][j]+=a[i+1][j];
 		}
 	}
 	_ret_val_0=0;
@@ -225,21 +225,18 @@ int foo3()
 
 void foo4(int i, int j)
 {
-	double a[1000][1000];
+	double a[10000][10000];
+	#pragma cetus private(i, j) 
+	#pragma loop name foo4#0 
+	for (i=0; i<=9998; i+=1)
 	{
-		int i = 0;
 		#pragma cetus private(j) 
-		#pragma loop name foo4#0 
-		for (; i<=998; i+=1)
+		#pragma loop name foo4#0#0 
+		#pragma cetus parallel 
+		#pragma omp parallel for private(j)
+		for (j=0; j<=9999; j+=1)
 		{
-			{
-				int j = 0;
-				#pragma loop name foo4#0#0 
-				for (; j<=999; j+=1)
-				{
-					a[i][j]+=a[i+1][j];
-				}
-			}
+			a[i][j]+=a[i+1][j];
 		}
 	}
 	return ;
@@ -438,14 +435,17 @@ int bx[10000];
 void foo10()
 {
 	int i;
-	int j;
+	int j = 0;
 	int i_ub = 10000;
-	#pragma cetus private(i, j) 
+	#pragma cetus private(i) 
 	#pragma loop name foo10#0 
-	for (((i=0), (j=0)); i<=(i_ub-1); ((i ++ ), (j ++ )))
+	#pragma cetus parallel 
+	#pragma omp parallel for private(i)
+	for (i=0; i<=(i_ub-1); i ++ )
 	{
-		bx[j]=ax[i];
+		bx[i+j]=ax[i];
 	}
+	j+=10000;
 	return ;
 }
 
@@ -456,25 +456,25 @@ void foo10()
 */
 void foo11(int istart, int iend, real8 * a, real8 * b, real8 * c, int k, real8 * l, real8 * m, real8 * n, real8 * o, real8 * p)
 {
+	int i;
+	#pragma cetus private(k) 
+	#pragma loop name foo11#0 
+	for (i=istart; i<=(iend-1); i+=1)
 	{
-		int i = istart;
-		#pragma cetus private(k) 
-		#pragma loop name foo11#0 
-		#pragma cetus reduction(+: k) 
-		for (; i<=(iend-1); i+=1)
+		real8 s[3];
+		real8 afi = a[i];
+		real8 bfi = b[i];
+		int k;
+		OtherFunc(k, l, m, n, o, p, afi, bfi, s);
+		#pragma cetus lastprivate(k) 
+		#pragma loop name foo11#0#0 
+		#pragma cetus parallel 
+		/*
+		Disabled due to low profitability: #pragma omp parallel for lastprivate(k)
+		*/
+		for (k=0; k<=2; k+=1)
 		{
-			real8 s[3];
-			real8 afi = a[i];
-			real8 bfi = b[i];
-			OtherFunc(k, l, m, n, o, p, afi, bfi, s);
-			{
-				int k = 0;
-				#pragma loop name foo11#0#0 
-				for (; k<=2; k+=1)
-				{
-					c[(3*i)+k]=s[k];
-				}
-			}
+			c[(3*i)+k]=s[k];
 		}
 	}
 	return ;
@@ -612,15 +612,16 @@ void foo13()
 void foo14(int * indexSet, int N, int ax)
 {
 	double * xa3[N];
+	int idx;
+	#pragma cetus private(idx) 
+	#pragma loop name foo14#0 
+	#pragma cetus reduction(+: xa3[indexSet[idx]]) 
+	#pragma cetus parallel 
+	#pragma omp parallel for if((10000<(1L+(4L*N)))) private(idx) reduction(+: xa3[indexSet[idx]])
+	for (idx=0; idx<=(N-1); idx+=1)
 	{
-		int idx = 0;
-		#pragma loop name foo14#0 
-		#pragma cetus reduction(+: xa3[indexSet[idx]]) 
-		for (; idx<=(N-1); idx+=1)
-		{
-			xa3[indexSet[idx]]+=ax;
-			xa3[indexSet[idx]]+=ax;
-		}
+		xa3[indexSet[idx]]+=ax;
+		xa3[indexSet[idx]]+=ax;
 	}
 	return ;
 }
@@ -628,17 +629,17 @@ void foo14(int * indexSet, int N, int ax)
 void foo15(int * indexSet, int N, int ax)
 {
 	double * xa3[N];
+	int idx;
+	#pragma cetus private() 
+	#pragma loop name foo15#0 
+	#pragma cetus reduction(+: xa3[indexSet[idx]]) 
+	#pragma cetus parallel 
+	#pragma omp parallel for if((10000<(1L+(5L*N)))) reduction(+: xa3[indexSet[idx]])
+	for (idx=0; idx<=(N-1); idx+=1)
 	{
-		int idx = 0;
-		#pragma cetus private(i) 
-		#pragma loop name foo15#0 
-		#pragma cetus reduction(+: xa3[indexSet[idx]]) 
-		for (; idx<=(N-1); idx+=1)
-		{
-			const int i = indexSet[idx];
-			xa3[indexSet[idx]]+=ax;
-			xa3[indexSet[idx]]+=ax;
-		}
+		const int i = indexSet[idx];
+		xa3[indexSet[idx]]+=ax;
+		xa3[indexSet[idx]]+=ax;
 	}
 	return ;
 }
@@ -1148,16 +1149,17 @@ void foo27(double * x, int jp, int begin, int end, double rh1)
 {
 	double * x1;
 	double * x2;
+	int i;
 	x1=x;
 	x2=(x1+jp);
+	#pragma cetus private(i) 
+	#pragma loop name foo27#0 
+	#pragma cetus parallel 
+	#pragma omp parallel for if((10000<((1L+(-4L*begin))+(4L*end)))) private(i)
+	for (i=begin; i<=(end-1); i+=1)
 	{
-		int i = begin;
-		#pragma loop name foo27#0 
-		for (; i<=(end-1); i+=1)
-		{
-			x1[i]+=rh1;
-			x2[i]-=rh1;
-		}
+		x1[i]+=rh1;
+		x2[i]-=rh1;
 	}
 	return ;
 }

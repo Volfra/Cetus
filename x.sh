@@ -1,5 +1,5 @@
 #!/bin/bash
-for ((i=1; i <= 20; i++))
+for ((i=20; i <= 20; i++))
 do
     file="test$i.c"
     

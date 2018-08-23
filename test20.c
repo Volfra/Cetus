@@ -1,12 +1,11 @@
 /* test Rose
-*/
+ * https://github.com/rose-compiler/rose/tree/master/projects/autoParallelization/tests
+ */
 typedef double real8;
 extern void OtherFunc(int k,real8 *l,real8 *m,real8 *n,real8 *o,real8 *p,real8 q,real8 r,real8 s[3]);
 
 int main () {
-
-	return 0;
-
+   return 0;
 }
 
 /*
@@ -14,30 +13,99 @@ int main () {
  */
 void DelVolBaseLoopAlgorithm()
 {
-    int j,k;
-
-    for ( k=1; k < 1000; k++ ) {
+    int j,k, off;
+    for ( k=1; k < 10000; k++ ) {
       for ( j=1; j < 10000; j++ ) {                                                                                        
-        int off = j * 555 + k * 777 ;                         
+         off = j * 555 + k * 777 ;                         
       }
     }
 }
 
 /*
- * AccumulateForce
+ * Rose stress
  */
-void AccumulateForce(int *idxBound, int *idxList, int len,
-                    double *tmp, double *force)
+void StressCheckEpsFail(real8 *newSxx,real8 *newSyy,real8 *newSzz,real8 *newTxy,real8 *newTxz,real8 *newTyz,real8 *eps,real8 eps_failure_model,const int *zoneset,int length)
 {
-  for (register int ii = 0; ii<len; ++ii) {
+  int i;
+  int index;
+  
+  for (i = 0; i <= length - 1; i += 1) {
+    index = zoneset[i];
+    if (eps[zoneset[i]] > eps_failure_model) {
+      newSxx[i] = 0.0;
+      newSyy[i] = 0.0;
+      newSzz[i] = 0.0;
+      newTxy[i] = 0.0;
+      newTxz[i] = 0.0;
+      newTyz[i] = 0.0;
+      eps[zoneset[i]] = eps_failure_model * 1.01;
+    }
+  }
+}
+
+void StressStrainWork(real8 *deltz,real8 *delts,const real8 *newSxx,const real8 *newSyy,const real8 *newSzz,const real8 *newTxy,const real8 *newTxz,const real8 *newTyz,const real8 *sxx,const real8 *syy,const real8 *txy,const real8 *txz,const real8 *tyz,const real8 *dxx,const real8 *dyy,const real8 *dzz,const real8 *dxy,const real8 *dxz,const real8 *dyz,real8 deltaTime,const int *zoneset,const real8 *vc,const real8 *vnewc,int length)
+{
+  int i;
+  int index;
+  real8 quarterDelta = 0.25 * deltaTime;
+  real8 szz;
+  
+  for (i = 0; i <= length - 1; i += 1) {
+    index = zoneset[i];
+    szz = -sxx[zoneset[i]] - syy[zoneset[i]];
+    deltz[zoneset[i]] += quarterDelta * (vnewc[i] + vc[i]) * (dxx[zoneset[i]] * (sxx[zoneset[i]] + newSxx[i]) + dyy[zoneset[i]] * (syy[zoneset[i]] + newSyy[i]) + dzz[zoneset[i]] * (szz + newSzz[i]) + 2. * dxy[zoneset[i]] * (txy[zoneset[i]] + newTxy[i]) + 2. * dxz[zoneset[i]] * (txz[zoneset[i]] + newTxz[i]) + 2. * dyz[zoneset[i]] * (tyz[zoneset[i]] + newTyz[i]));
+    delts[i] += quarterDelta * (vnewc[i] + vc[i]) * (dxx[zoneset[i]] * sxx[zoneset[i]] + dyy[zoneset[i]] * syy[zoneset[i]] + dzz[zoneset[i]] * szz + 2. * dxy[zoneset[i]] * txy[zoneset[i]] + 2. * dxz[zoneset[i]] * txz[zoneset[i]] + 2. * dyz[zoneset[i]] * tyz[zoneset[i]]);
+  }
+}
+
+void StressStrainHeat(const real8 *deltz,real8 *deltzh,real8 *deltrh,const real8 *shearMod,const real8 *shearRatio,const real8 *shearDer,const real8 *newSxx,const real8 *newSyy,const real8 *newSzz,const real8 *newTxy,const real8 *newTxz,const real8 *newTyz,const real8 *sxx,const real8 *syy,const real8 *txy,const real8 *txz,const real8 *tyz,real8 deltaTime,const int *zoneset,const real8 *vc,const real8 *vnewc,int length)
+{
+  real8 shearr;
+  real8 sheari;
+  real8 avgMod;
+  int nz;
+  int i;
+/* Quiet the compiler - unused argument */
+  deltaTime = deltaTime;
+  
+  for (i = 0; i <= length - 1; i += 1) {
+    nz = zoneset[i];
+    shearr = 0.5 * shearRatio[i];
+    if (shearMod[zoneset[i]] > 0.) {
+      sheari = 0.5 / shearMod[zoneset[i]];
+      deltrh[zoneset[i]] = .25 * (vnewc[i] + vc[i]) * ((newSxx[i] * sheari - sxx[zoneset[i]] * shearr) * (sxx[zoneset[i]] + newSxx[i]) + (newSyy[i] * sheari - syy[zoneset[i]] * shearr) * (syy[zoneset[i]] + newSyy[i]) + (newSzz[i] * sheari + (syy[zoneset[i]] + sxx[zoneset[i]]) * shearr) * (newSzz[i] - sxx[zoneset[i]] - syy[zoneset[i]]) + 2. * (newTxy[i] * sheari - txy[zoneset[i]] * shearr) * (txy[zoneset[i]] + newTxy[i]) + 2. * (newTxz[i] * sheari - txz[zoneset[i]] * shearr) * (txz[zoneset[i]] + newTxz[i]) + 2. * (newTyz[i] * sheari - tyz[zoneset[i]] * shearr) * (tyz[zoneset[i]] + newTyz[i]));
+    }
+     else {
+      deltrh[zoneset[i]] = - .25 * (vnewc[i] + vc[i]) * (sxx[zoneset[i]] * (sxx[zoneset[i]] + newSxx[i]) + syy[zoneset[i]] * (syy[zoneset[i]] + newSyy[i]) - (syy[zoneset[i]] + sxx[zoneset[i]]) * (newSzz[i] - sxx[zoneset[i]] - syy[zoneset[i]]) + 2. * txy[zoneset[i]] * (txy[zoneset[i]] + newTxy[i]) + 2. * txz[zoneset[i]] * (txz[zoneset[i]] + newTxz[i]) + 2. * tyz[zoneset[i]] * (tyz[zoneset[i]] + newTyz[i])) * shearr;
+    }
+    deltzh[zoneset[i]] = deltz[zoneset[i]] - deltrh[zoneset[i]];
+    avgMod = 0.5 * shearMod[zoneset[i]];
+    if (shearRatio[i] > 0.0) 
+      avgMod = avgMod + 0.5 / shearRatio[i];
+    if (avgMod > 0.0) 
+      deltrh[zoneset[i]] = shearDer[i] * deltrh[zoneset[i]] / avgMod;
+     else 
+      deltrh[zoneset[i]] = 0.0;
+  }
+} 
+
+/*
+ * Accumulate force
+ */
+void AccumulateForce(int *idxBound,int *idxList,int len,double *tmp,double *force)
+{
+  register int ii;
+  for ( ii = 0; ii <= len - 1; ii += 1) {
     int count = idxBound[ii + 1] - idxBound[ii];
     int *list = &idxList[idxBound[ii]];
     double sum = 0.0;
-    for (register int jj = 0; jj<count; ++jj) {
+    
+    register int jj;
+    for (jj = 0; jj <= count - 1; jj += 1) {
       int idx = list[jj];
-      sum += tmp[idx] ;
+      sum += tmp[list[jj]];
     }
-    force[ii] += sum ;
+    force[ii] += sum;
   }
   return ;
 }
@@ -45,7 +113,7 @@ void AccumulateForce(int *idxBound, int *idxList, int len,
 /*
  * An anti-dependence example
  */
-void foo_()
+void foo1()
 {
   int i;
   int a[1000];
@@ -57,7 +125,7 @@ void foo_()
 /*
  * Array Scalar
  */
-void foo__()
+void foo2()
 {
   int i;
   int a[1000];
@@ -67,9 +135,35 @@ void foo__()
 }
 
 /*
+ * C99
+ */
+int foo3()
+{
+  double a[10000][10000];
+  int i, j;
+  for (i = 0; i <= 9998; i += 1) {
+    for (j = 0; j <= 9999; j += 1) {
+      a[i][j] += a[i + 1][j];
+    }
+  }
+  return 0;
+}
+
+void foo4 (int i,int j)
+{
+  double a[10000][10000];
+  for (i = 0; i <= 9998; i += 1) {
+    for (j = 0; j <= 9999; j += 1) {
+      a[i][j] += a[i + 1][j];
+    }
+  }
+} 
+ 
+
+/*
  * Coefficient subscript
  */
-void foo___()
+void foo5()
 {
   int i;
   int a[1000];
@@ -95,7 +189,7 @@ void goo(int numAB)
 /*
  * Deep distance
  */
-void foo____()
+void foo6()
 {
   int i;
   int j;
@@ -109,9 +203,22 @@ void foo____()
 }
 
 /*
+ * Doall
+ */
+void foo7()
+{
+  int i;
+  int a[10000];
+  
+  for (i = 0; i <= 9999; i += 1) {
+    a[i] = a[i] + 1;
+  }
+}
+
+/*
  * first private
  */
-void foo_____(double *o1,double *c,int **idx,int len)
+void foo8(double *o1,double *c,int **idx,int len)
 {
   int i;
   for (i = 0; i <= len - 1; i += 1) {
@@ -160,7 +267,7 @@ void error_check()
 /*
  * foo
  */
-void foo1(double o1[],double c[],int len)
+void foo9(double o1[],double c[],int len)
 {
   int i;
   
@@ -171,17 +278,34 @@ void foo1(double o1[],double c[],int len)
 }
 
 /*
+ * for i j
+ */
+int ax[10000];
+int bx[10000];
+void foo10 ()
+{
+  int i;
+  int j = 0;
+  int i_ub = 10000;
+  for (i = 0; i <= i_ub - 1; i++) {
+    bx[j] = ax[i];
+    j++;
+  }
+}
+
+/*
  * function call
  */
-void foo(int istart,int iend,real8 *a,real8 *b,real8 *c,int k,real8 *l,real8 *m,real8 *n,real8 *o,real8 *p)
+void foo11 (int istart,int iend,real8 *a,real8 *b,real8 *c,int k,real8 *l,real8 *m,real8 *n,real8 *o,real8 *p)
 {
-  for (int i = istart; i <= iend - 1; i += 1) {
+int i;
+  for (i = istart; i <= iend - 1; i += 1) {
     real8 s[3];
     real8 afi = a[i];
     real8 bfi = b[i];
     OtherFunc(k,l,m,n,o,p,afi,bfi,s);
-    
-    for (int k = 0; k <= 2; k += 1) {
+    int k;
+    for (k = 0; k <= 2; k += 1) {
       c[3 * i + k] = s[k];
     }
   }
@@ -215,12 +339,12 @@ void initialize()
 /*
  * if and for
  */
-void foo5(int j)
+void foo12(int j)
 {
   int i;
-  int a[1000];
+  int a[10000];
   if (j != - 1) {
-    for (i = 0; i <= 999; i += 1) {
+    for (i = 0; i <= 9999; i += 1) {
       a[i] = a[i] + 1;
     }
   }
@@ -231,7 +355,7 @@ void foo5(int j)
  */
 double eps[1000];
 int zoneset[1000];
-void StressCheckEpsFail(double eps_failure_model)
+void StressCheckEpsFail1(double eps_failure_model)
 {
   int i;
   int index;
@@ -256,7 +380,7 @@ void StressCheckEpsFaili2(double eps_failure_model)
   }
 }
 
-void foo6()
+void foo13()
 {
   int n = 1000;
   int m = 1000;
@@ -277,21 +401,23 @@ void foo6()
 /*
  * indirect index transfered
  */
-void foo7(int *indexSet,int N,int ax)
+void foo14(int *indexSet,int N,int ax)
 {
   double *xa3[N];
   
-  for (int idx = 0; idx <= N - 1; idx += 1) {
+  int idx;
+  for (idx = 0; idx <= N - 1; idx += 1) {
     xa3[indexSet[idx]] += ax;
     xa3[indexSet[idx]] += ax;
   }
 }
 
-void foo8(int *indexSet,int N,int ax)
+void foo15(int *indexSet,int N,int ax)
 {
   double *xa3[N];
   
-  for (int idx = 0; idx <= N - 1; idx += 1) {
+  int idx;
+  for (idx = 0; idx <= N - 1; idx += 1) {
     const int i = indexSet[idx];
     xa3[indexSet[idx]] += ax;
     xa3[indexSet[idx]] += ax;
@@ -301,10 +427,10 @@ void foo8(int *indexSet,int N,int ax)
 /*
  * inner only loop
  */
- void foo9()
+ void foo16()
 {
-  int n = 1000;
-  int m = 1000;
+  int n = 10000;
+  int m = 10000;
   double b[n][m];
   int i;
   int j;
@@ -318,17 +444,17 @@ void foo8(int *indexSet,int N,int ax)
 /*
  * last private
  */
-void foo10()
+void foo17()
 {
   int i;
   int x;
   
-  for (i = 0; i <= 99; i += 1) {
+  for (i = 0; i <= 99999; i += 1) {
     x = i;
   }
 }
 
-void foo11()
+void foo18()
 {
   int a[1000];
   int i;
@@ -342,7 +468,7 @@ void foo11()
 /*
  * liveness test
  */
- void foo12(real8 *y,real8 *d__,real8 *d11,real8 *d12,real8 *d13,real8 *d22,real8 *d23,real8 *d33,real8 *m,int *nell,real8 *p,int t,int flagB,int flagA,int ub)
+ void foo19(real8 *y,real8 *d__,real8 *d11,real8 *d12,real8 *d13,real8 *d22,real8 *d23,real8 *d33,real8 *m,int *nell,real8 *p,int t,int flagB,int flagA,int ub)
 {
   int l;
   int nel;
@@ -533,7 +659,7 @@ void foo11()
 /*
  * minus minus
  */
- void foo13(int numNodes,int numNodes2,int *x,int *nodelist)
+ void foo20(int numNodes,int numNodes2,int *x,int *nodelist)
 {
   int j;
   for (j = numNodes - 1; j >= 0; j += -1) {
@@ -548,7 +674,7 @@ void foo11()
 /*
  * Outer only loop
  */
- void foo14()
+ void foo21()
 {
   int n = 1000;
   int m = 1000;
@@ -566,12 +692,12 @@ void foo11()
 /*
  * Output dependence
  */	
-void foo15()
+void foo22()
 {
   int i;
   int x;
   
-  for (i = 0; i <= 999; i += 1) {
+  for (i = 0; i <= 99999; i += 1) {
     x = i;
   }
 }
@@ -579,13 +705,13 @@ void foo15()
 /*
  * Output dependence2
  */	
-void foo16()
+void foo23()
 {
   int i;
   int x;
   int y;
   
-  for (i = 0; i <= 999; i += 1) {
+  for (i = 0; i <= 99999; i += 1) {
     x = i;
     y = i;
     y = i + 1;
@@ -595,15 +721,15 @@ void foo16()
 /*
  * Output dependence3
  */	
-void foo17()
+void foo24()
 {
   int i;
   int j;
   int x;
   int y;
   
-  for (i = 0; i <= 99; i += 1) {
-    for (j = 0; j <= 99; j += 1) {
+  for (i = 0; i <= 9999; i += 1) {
+    for (j = 0; j <= 9999; j += 1) {
       x = i;
       y = x;
       y = i + j;
@@ -615,20 +741,20 @@ void foo17()
 /*
  * Plus assign
  */
-void foo18()
+void foo25()
 {
   int i;
   int j;
-  double a[1000][1000];
-  for (i = 0; i <= 998; i += 1) {
-    for (j = 0; j <= 999; j += 1) {
+  double a[10000][10000];
+  for (i = 0; i <= 9998; i += 1) {
+    for (j = 0; j <= 9999; j += 1) {
       a[i][j] += a[i + 1][j];
     }
   }
 }
 
 /*
- * Plus plus
+ * Plus plus op
  */
 int HighPassFilter(int *input,int inLen,int *output,int threshold)
 {
@@ -643,15 +769,32 @@ int HighPassFilter(int *input,int inLen,int *output,int threshold)
 }
 
 /*
+ * Pointer dereference
+ */
+int *nd_array[10000];
+int *gr_array[10000];
+void foo26(int rlenmix)
+{
+  int i;
+  for (i = 0; i <= rlenmix - 1; i += 1) {
+    int nn =  *(nd_array[1] + i);
+    int gg =  *(gr_array[1] + i);
+    nn =  *(nd_array[2] + i);
+    gg =  *(gr_array[2] + i);
+  }
+}
+
+/*
  * Pointers
  */
-void foo19(double *x,int jp,int begin,int end,double rh1)
+void foo27(double *x,int jp,int begin,int end,double rh1)
 {
   double *x1;
   double *x2;
   x1 = x;
   x2 = x1 + jp;
-  for (int i = begin; i <= end - 1; i += 1) {
+  int i;
+  for (i = begin; i <= end - 1; i += 1) {
     x1[i] += rh1;
     x2[i] -= rh1;
   }
@@ -661,14 +804,14 @@ void foo19(double *x,int jp,int begin,int end,double rh1)
  * Private
  */
 int g;
-void foo20()
+void foo28()
 {
   int i;
   int x;
-  int a[1000];
-  int b[1000];
+  int a[10000];
+  int b[10000];
 
-  for (i = 0; i <= 999; i += 1) {
+  for (i = 0; i <= 9999; i += 1) {
     int y = i + 1;
 //   g = y;
     x = a[i] + g;
@@ -679,10 +822,9 @@ void foo20()
 /*
  * Reduction
  */
-int a[1000];
+int a[10000];
 int sum;
-
-void foo21()
+void foo29()
 {
   int i;
   int sum2;
@@ -691,7 +833,7 @@ void foo21()
   int zz;
   sum = 0;
   
-  for (i = 0; i <= 999; i += 1) {
+  for (i = 0; i <= 9999; i += 1) {
     a[i] = i;
     sum = a[i] + sum;
     xx++;
@@ -706,7 +848,7 @@ void foo21()
  * Reduction 2
  */
 float uu[1000][1000];
-float foo22()
+float foo30()
 {
   int i;
   int j;
@@ -726,9 +868,9 @@ float foo22()
  * Reduction fake
  */
 extern int bar();
-int a[1000];
+int a[10000];
 int sum;
-void foo23()
+void foo31()
 {
   int i;
   int sum2;
@@ -736,7 +878,7 @@ void foo23()
   int yy;
   int zz;
   sum = 0;
-  for (i = 0; i <= 999; i += 1) {
+  for (i = 0; i <= 9999; i += 1) {
     a[i] = i;
     sum = a[i] + sum + bar();
 //    sum = a[i]+ sum ;    
@@ -748,14 +890,14 @@ void foo23()
 /*
  * Reduction max
  */
-double aa[1000];
-void foo24()
+double aa[10000];
+void foo32()
 {
-  double max_val = - 1e99;
+  double max_val = -1e99;
   double min_val = 1e99;
-  int i;
   
-  for (i = 0; i <= 999; i += 1) {
+  int i;
+  for (i = 0; i <= 9999; i += 1) {
     if (aa[i] > max_val) {
       max_val = aa[i];
     }
@@ -767,7 +909,7 @@ void foo24()
 /*
  * Regression
  */
-void foo25(real8 *a,real8 *b,real8 *c,real8 *d,int len)
+void foo33(real8 *a,real8 *b,real8 *c,real8 *d,int len)
 {
   int icol;
   int jrow;
@@ -778,13 +920,13 @@ void foo25(real8 *a,real8 *b,real8 *c,real8 *d,int len)
     real8 f = d[l * 3 + 1];
     real8 g = d[l * 3 + 2];
     real8 h = b[l];
-    real8 tmp[8];
-    for (icol = 0; icol <= 7; icol += 1) {
+    real8 tmp[10000];
+    for (icol = 0; icol <= 9999; icol += 1) {
       tmp[icol] = e * c[(icol + l8) * 4 + 1] + f * c[(icol + l8) * 4 + 2] + g * c[(icol + l8) * 4 + 3];
     }
-    for (jrow = 0; jrow <= 7; jrow += 1) {
+    for (jrow = 0; jrow <= 9999; jrow += 1) {
       real8 hj1 = h * c[(jrow + l8) * 4];
-      for (icol = 0; icol <= 7; icol += 1) {
+      for (icol = 0; icol <= 9999; icol += 1) {
         a[icol + (jrow + l8) * 8] += hj1 * tmp[icol];
       }
     }
@@ -794,24 +936,24 @@ void foo25(real8 *a,real8 *b,real8 *c,real8 *d,int len)
 /*
  * Scalar-anti
  */
-void foo26()
+void foo34()
 {
   int i;
   int tmp;
   tmp = 10;
-  for (i = 0; i <= 999; i += 1) {
+  for (i = 0; i <= 9999; i += 1) {
     a[i] = tmp;
     tmp = a[i] + i;
   }
 }
 
-void foo27()
+void foo35()
 {
   int i;
   int tmp;
   tmp = 10;
 
-  for (i = 0; i <= 999; i += 1) {
+  for (i = 0; i <= 9999; i += 1) {
     a[i] = tmp;
   }
   i = tmp;
@@ -820,22 +962,22 @@ void foo27()
 /*
  * Scalar-output
  */
-void foo28()
+void foo36()
 {
   int i;
   int tmp;
   
-  for (i = 0; i <= 999; i += 1) {
+  for (i = 0; i <= 9999; i += 1) {
     tmp = a[i] + i;
   }
 }
 
-void foo29()
+void foo37()
 {
   int i;
   int tmp;
   
-  for (i = 0; i <= 999; i += 1) {
+  for (i = 0; i <= 9999; i += 1) {
     tmp = a[i] + i;
   }
   i = tmp;
@@ -844,12 +986,12 @@ void foo29()
 /*
  * Scalar privatization
  */
-int a[1000];
-int b[1000];
-void foo30()
+int a[10000];
+int b[10000];
+void foo38()
 {
   int i;
-  for (i = 0; i <= 99; i += 1) {
+  for (i = 0; i <= 9999; i += 1) {
     int tmp;
     tmp = a[i] + i;
     b[i] = tmp;
@@ -859,23 +1001,23 @@ void foo30()
 /*
  * Scalar true
  */
-void foo31()
+void foo39()
 {
   int i;
   int tmp;
   
-  for (i = 0; i <= 999; i += 1) {
+  for (i = 0; i <= 9999; i += 1) {
     tmp = a[i] + i;
     a[i] = tmp;
   }
 }
 
-void foo32()
+void foo40()
 {
   int i;
   int tmp;
   
-  for (i = 0; i <= 999; i += 1) {
+  for (i = 0; i <= 9999; i += 1) {
     tmp = a[i] + i;
     a[i] = tmp;
   }
@@ -885,13 +1027,13 @@ void foo32()
 /*
  * Shared
  */
-void foo33()
+void foo41()
 {
   int i;
   int x;
-  int a[1000];
+  int a[10000];
   
-  for (i = 0; i <= 999; i += 1) {
+  for (i = 0; i <= 9999; i += 1) {
     a[i] = a[i] + 1;
   }
 }
@@ -939,15 +1081,14 @@ struct VectorXY
 {
   double x;
   double y;
-}
-;
-struct VectorXY v1[1000];
-struct VectorXY v2[1000];
+};
+struct VectorXY v1[10000];
+struct VectorXY v2[10000];
 
 void applyVelocity()
 {
   int in;
-  for (in = 0; in <= 999; in += 1) {
+  for (in = 0; in <= 9999; in += 1) {
     v1[in].y = v2[3].y;
   }
 }
@@ -955,7 +1096,7 @@ void applyVelocity()
 /*
  * true dependence
  */
-void foo34()
+void foo42()
 {
   int i;
   int a[1000];
@@ -967,7 +1108,7 @@ void foo34()
 /*
  * true dependence both levels
  */
-void foo35()
+void foo43()
 {
   int n = 1000;
   int m = 1000;
@@ -984,7 +1125,7 @@ void foo35()
 /*
  * true dependence scalar
  */
-void foo36()
+void foo44()
 {
   int i;
   int a[1000];
@@ -1004,7 +1145,7 @@ void foo36()
 int ii;
 int jj;
 int cc[1000][1000];
-void foo37()
+void foo45()
 {
   
   for (ii = 1; ii <= 999; ii += 1) {
